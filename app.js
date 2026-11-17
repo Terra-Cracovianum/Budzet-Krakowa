@@ -13,6 +13,8 @@ const state = {
   series: { wydatki: true, dochody: true, deficyt: true },
   dzialTrend: new Set(),
   amount: null,
+  storyOpen: new Set(),
+  storyRest: false,
 };
 
 const cache = { budget: {}, wykonanie: {}, trends: null };
@@ -378,6 +380,192 @@ function paintYearChart(trends) {
   focus(Math.max(0, rows.findIndex((r) => r.rok === state.year)));
 }
 
+const DZIAL_ZDANIE = {
+  "801": "Szkoły, przedszkola i wynagrodzenia ujęte w tym dziale klasyfikacji.",
+  "600": "Transport zbiorowy, drogi i komunikacja miejska.",
+  "900": "Odpady, zieleń, oświetlenie i ochrona środowiska.",
+  "750": "Praca urzędu, rady i obsługa spraw mieszkańców.",
+  "852": "Pomoc społeczna, ośrodki i świadczenia z tego działu.",
+  "921": "Instytucje kultury, zabytki i wydarzenia kulturalne.",
+  "855": "Żłobki, rodziny zastępcze i świadczenia rodzinne ujęte w uchwale.",
+  "757": "Odsetki i obsługa zaciągniętych zobowiązań.",
+  "854": "Placówki wychowania, internaty i opieka edukacyjna.",
+  "700": "Mieszkania, grunty i nieruchomości gminy.",
+  "926": "Obiekty sportowe i zadania kultury fizycznej.",
+  "754": "Straż miejska, pożarnictwo i bezpieczeństwo.",
+  "853": "Pozostałe zadania polityki społecznej, w tym urząd pracy.",
+  "710": "Cmentarze, nadzór budowlany i obsługa inwestycji.",
+  "851": "Ochrona zdrowia i programy zdrowotne gminy.",
+  "758": "Rezerwy i rozliczenia, które nie są jeszcze zadaniem.",
+  "925": "Ogród zoologiczny i ochrona przyrody.",
+  "752": "Zadania obronne zapisane w uchwale.",
+  "020": "Gospodarka leśna.",
+  "755": "Nieodpłatna pomoc prawna.",
+  "010": "Drobne zadania rolnictwa.",
+  "751": "Niewielkie rozliczenia z organami państwa.",
+  "100": "Śladowa kwota górnictwa w klasyfikacji.",
+};
+const DOCHOD_ZDANIE = {
+  "Udziały w PIT": "Część podatku od osób fizycznych, która trafia do miasta.",
+  "Udziały w CIT": "Część podatku od firm.",
+  "Podatki lokalne": "Podatek od nieruchomości i inne podatki pobierane w gminie.",
+  "Subwencje": "Środki z budżetu państwa na finansowanie zadań.",
+  "Dotacje": "Pieniądze na wskazane zadania, często z określonym przeznaczeniem.",
+  "Pozostałe dochody własne": "Opłaty, wpływy z majątku i inne dochody własne.",
+  "Dochody majątkowe": "Wpływy ze sprzedaży majątku i dotacji inwestycyjnych.",
+};
+
+function pct(part, whole) {
+  if (!whole) return "—";
+  return `${(100 * part / whole).toLocaleString("pl-PL", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+}
+function zeStu(part, whole) {
+  if (!whole) return "—";
+  return `${(100 * part / whole).toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł`;
+}
+
+function spendRow(row, base) {
+  const open = state.storyOpen.has(row.code);
+  const button = el("button", {
+    type: "button",
+    class: "open",
+    "aria-expanded": String(open),
+    text: open ? "Zwiń" : "Co obejmuje",
+    onclick: () => {
+      if (state.storyOpen.has(row.code)) state.storyOpen.delete(row.code);
+      else state.storyOpen.add(row.code);
+      paintStory(doc());
+    },
+  });
+  const body = el("div", { class: "spend-body" });
+  if (!open) body.hidden = true;
+  else if (!row.rozdzialy?.length) {
+    body.append(el("p", { class: "plain", text: "Rozdziały tego działu nie dodały się do sumy z uchwały." }));
+  } else {
+    for (const r of row.rozdzialy) {
+      const name = r.name ? `${r.code} ${r.name}` : r.code;
+      body.append(el("div", { class: "chapter-line" }, [
+        el("span", { text: name }),
+        el("span", { class: "amt", text: mln(r.plan), "data-full": `${row.name}, ${name}: ${full(r.plan)}` }),
+      ]));
+    }
+  }
+  return el("article", { class: "spend" }, [
+    el("div", { class: "spend-top" }, [
+      el("p", { class: "spend-pct", text: pct(row.plan, base) }),
+      el("div", {}, [
+        el("h3", { text: `${row.code} ${row.name}` }),
+        el("p", { class: "plain", text: DZIAL_ZDANIE[row.code] || "Dział klasyfikacji budżetowej. Szczegóły są w rozdziałach." }),
+        el("p", { class: "caption meta", text: `${mln(row.plan)} · ${zeStu(row.plan, base)} z każdych 100 zł · ${full(row.plan)}` }),
+      ]),
+      button,
+    ]),
+    body,
+  ]);
+}
+
+function paintStory(d) {
+  const m = d.meta;
+  const trio = $("#story-trio");
+  clear(trio);
+  const gap = m.wydatki - m.dochody;
+  const resultName = gap > 0 ? "Deficyt" : gap < 0 ? "Nadwyżka" : "Wynik";
+  const resultText = gap > 0
+    ? "Wydatki w uchwale są wyższe od dochodów. Brak domykają pozycje z paragrafu 2."
+    : gap < 0
+      ? "Dochody w uchwale są wyższe od wydatków. Nadwyżka nie jest wolną kwotą do wydania."
+      : "Dochody i wydatki w uchwale są równe.";
+  for (const card of [
+    ["Dochody", m.dochody, "Planowane wpływy z paragrafu 1."],
+    ["Wydatki", m.wydatki, "Planowane wydatki z paragrafu 1."],
+    [resultName, Math.abs(gap), resultText],
+  ]) {
+    trio.append(el("article", { class: "card" }, [
+      el("h3", { text: card[0] }),
+      el("p", { class: "num", text: mln(card[1]) }),
+      el("p", { text: card[2] }),
+      el("p", { class: "caption", text: full(card[1]) }),
+    ]));
+  }
+
+  const ranked = [...d.wydatki_dzialy].sort((a, b) => b.plan - a.plan);
+  const big = [];
+  const small = [];
+  ranked.forEach((row, i) => {
+    if (i < 6 || row.plan / m.wydatki >= 0.02) big.push(row);
+    else small.push(row);
+  });
+  const spend = $("#story-spend");
+  clear(spend);
+  for (const row of big) spend.append(spendRow(row, m.wydatki));
+  if (small.length) {
+    const restSum = small.reduce((s, row) => s + row.plan, 0);
+    const restOpen = state.storyRest || small.some((row) => state.storyOpen.has(row.code));
+    const restBody = el("div", { class: "spend-body" });
+    restBody.hidden = !restOpen;
+    if (restOpen) for (const row of small) restBody.append(spendRow(row, m.wydatki));
+    spend.append(el("article", { class: "spend" }, [
+      el("div", { class: "spend-top" }, [
+        el("p", { class: "spend-pct", text: pct(restSum, m.wydatki) }),
+        el("div", {}, [
+          el("h3", { text: "Pozostałe działy" }),
+          el("p", { class: "plain", text: "Mniejsze działy zostają osobno. Żaden nie jest doliczony drugi raz." }),
+          el("p", { class: "caption meta", text: `${mln(restSum)} · ${zeStu(restSum, m.wydatki)} z każdych 100 zł · ${small.length} działów` }),
+        ]),
+        el("button", {
+          type: "button",
+          class: "open",
+          "aria-expanded": String(restOpen),
+          text: restOpen ? "Zwiń" : "Pokaż działy",
+          onclick: () => {
+            state.storyRest = !restOpen;
+            if (!state.storyRest) for (const row of small) state.storyOpen.delete(row.code);
+            paintStory(doc());
+          },
+        }),
+      ]),
+      restBody,
+    ]));
+  }
+
+  const income = $("#story-income");
+  clear(income);
+  const groups = [...d.dochody_grupy].filter((g) => g.plan > 0).sort((a, b) => b.plan - a.plan);
+  for (const g of groups) {
+    income.append(el("article", { class: "src-card" }, [
+      el("span", { class: "mono", text: pct(g.plan, m.dochody) }),
+      el("strong", { text: g.name }),
+      el("p", { text: DOCHOD_ZDANIE[g.name] || "Grupa dochodów z paragrafu 1 uchwały." }),
+      el("p", { class: "caption", text: `${mln(g.plan)} · ${full(g.plan)}` }),
+    ]));
+  }
+
+  const bie = m.wydatki_biezace || 0;
+  const maj = m.wydatki_majatkowe || 0;
+  $("#story-kind-h").textContent = `${pct(maj, m.wydatki)} wydatków to majątek i inwestycje.`;
+  const kind = $("#story-kind");
+  clear(kind);
+  const bar = el("div", { class: "kind-bar", role: "img", "aria-label": `Bieżące ${pct(bie, m.wydatki)}, majątkowe ${pct(maj, m.wydatki)}` });
+  const bieBar = el("i", { class: "bie" });
+  const majBar = el("i", { class: "maj" });
+  bieBar.style.width = `${(100 * bie) / m.wydatki}%`;
+  majBar.style.width = `${(100 * maj) / m.wydatki}%`;
+  bar.append(bieBar, majBar);
+  kind.append(
+    bar,
+    el("div", { class: "kind-row" }, [
+      el("span", { text: "Bieżące" }),
+      el("span", { class: "amt", text: mln(bie), "data-full": full(bie) }),
+    ]),
+    el("p", { class: "plain", text: "Szkoły, oświetlenie, usługi i wynagrodzenia, dzięki którym miasto działa na co dzień." }),
+    el("div", { class: "kind-row" }, [
+      el("span", { text: "Majątkowe" }),
+      el("span", { class: "amt", text: mln(maj), "data-full": full(maj) }),
+    ]),
+    el("p", { class: "plain", text: "Inwestycje i zakupy majątku, na przykład drogi i obiekty." }),
+  );
+}
+
 function paintOverview(trends, exe) {
   const d = doc();
   const m = d.meta;
@@ -429,6 +617,7 @@ function paintOverview(trends, exe) {
     show("mapa");
     openSheet(found);
   }));
+  paintStory(d);
   bars($("#ov-src"), d.dochody_grupy);
   bars($("#ov-fin"), m.finansowanie);
   $("#ov-def-h").textContent = mln(m.deficyt);

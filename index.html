@@ -69,6 +69,50 @@
         </div>
       </div>
       <section class="card ticker rv" id="ticker" style="--d:2" aria-label="Kluczowe kwoty z uchwały"></section>
+
+      <section class="story rv" id="story" style="--d:3" aria-label="Opowieść budżetu">
+        <div class="trio" id="story-trio"></div>
+        <article class="card">
+          <p class="mono">Na co idą pieniądze</p>
+          <h2 class="h">Każdy dział z uchwały, od największego.</h2>
+          <div id="story-spend"></div>
+        </article>
+        <div class="story-split">
+          <article class="card">
+            <p class="mono">Skąd pieniądze</p>
+            <h2 class="h">Grupy dochodów z paragrafu 1.</h2>
+            <div id="story-income" class="src-grid"></div>
+          </article>
+          <article class="card">
+            <p class="mono">Bieżące i majątkowe</p>
+            <h2 class="h" id="story-kind-h">Codzienne działanie i inwestycje.</h2>
+            <div id="story-kind"></div>
+          </article>
+        </div>
+        <article class="card">
+          <p class="mono">Pytania</p>
+          <h2 class="h">Co te liczby znaczą.</h2>
+          <div class="faq">
+            <details>
+              <summary>Czy to plan, czy już wydane pieniądze?</summary>
+              <p>Przegląd pokazuje plan pierwotny, czyli kwoty z pierwszej uchwały budżetowej na dany rok. Wydane pieniądze są w zakładce Wykonanie, i tylko dla lat, w których Komisja Rewizyjna już opiniowała sprawozdanie. Rok w toku nie ma jeszcze wykonania.</p>
+            </details>
+            <details>
+              <summary>Co oznacza deficyt?</summary>
+              <p>Deficyt to różnica, o którą wydatki w uchwale są wyższe od dochodów. Nie jest to dług sam w sobie. Brak domykają pozycje z paragrafu 2, na przykład emisja obligacji albo wolne środki. Nadwyżka też nie jest wolną kwotą do wydania.</p>
+            </details>
+            <details>
+              <summary>Dlaczego nazwy są z klasyfikacji, a nie potoczne?</summary>
+              <p>Zostawiamy urzędowe nazwy działów, żeby każdy wiersz dało się odnaleźć w uchwale. Zdanie obok tylko przybliża zakres i nie obiecuje, że cała kwota ma jeden cel. Działów nie łączymy, więc suma wierszy równa się wydatkom z paragrafu 1.</p>
+            </details>
+            <details>
+              <summary>Dlaczego nie ma kwoty na mieszkańca?</summary>
+              <p>Budżet dzielimy na udziały, nie na osoby. „Z każdych 100 zł” pokazuje proporcję wydatków. To nie jest podatek ani kwota wydana na konkretnego mieszkańca.</p>
+            </details>
+          </div>
+        </article>
+      </section>
+
       <div class="bento">
         <article class="card s8 rv" style="--d:3">
           <div class="k"><span class="mono">Mapa wydatków</span><button type="button" class="open" data-go="mapa">Otwórz</button></div>
