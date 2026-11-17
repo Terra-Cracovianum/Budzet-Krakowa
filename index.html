@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Budżet Krakowa</title>
+  <meta name="description" content="Plan budżetu Miasta Krakowa na lata 2016–2026 według pierwotnych uchwał Rady, oraz wykonanie i absolutorium tam, gdzie Rada już je uchwaliła.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="#przeglad">
+      <img src="logo.svg" alt="Terra Cracovianum" width="168" height="56">
+    </a>
+    <div class="title-block">
+      <p class="eyebrow">Miasto Kraków</p>
+      <h1>Budżet miasta</h1>
+    </div>
+    <div class="year-controls">
+      <button type="button" id="prev-year" aria-label="Poprzedni rok">‹</button>
+      <label class="year-label">
+        <span class="sr">Rok budżetowy</span>
+        <select id="year"></select>
+      </label>
+      <button type="button" id="next-year" aria-label="Następny rok">›</button>
+    </div>
+    <button type="button" id="theme" class="ghost" aria-pressed="false">Ciemny</button>
+  </header>
+
+  <nav class="views" aria-label="Widoki">
+    <button type="button" data-view="przeglad" class="on">Przegląd</button>
+    <button type="button" data-view="mapa">Mapa</button>
+    <button type="button" data-view="przeplyw">Przepływ</button>
+    <button type="button" data-view="inwestycje">Bieżące i inwestycje</button>
+    <button type="button" data-view="trendy">Trendy</button>
+    <button type="button" data-view="tysiac">Na 1000 zł</button>
+    <button type="button" data-view="wykonanie">Wykonanie</button>
+  </nav>
+
+  <p id="status" class="status" role="status">Wczytuję uchwały…</p>
+  <main id="app"></main>
+
+  <footer>
+    <p>Plan to pierwotna uchwała Rady Miasta Krakowa. Wykonanie to kwoty z opinii Komisji Rewizyjnej dołączonej do uchwały o absolutorium. To nie jest plan po zmianach, dopóki opinia sama tej kwoty nie poda. Jednostka w danych: złote.</p>
+    <p><a href="sources.md">Rejestr uchwał</a> · <a href="https://www.bip.krakow.pl/?dok_id=167">BIP Rady</a> · <a href="https://bip.krakow.pl/?sub_dok_id=23394">Absolutorium</a> · <a href="https://github.com/Terra-Cracovianum/Budzet-Polski">Budżet Polski</a></p>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
