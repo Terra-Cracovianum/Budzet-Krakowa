@@ -58,8 +58,14 @@
           <p class="links" id="hero-links"></p>
         </div>
         <div class="card yr rv" style="--d:1">
-          <div class="yr-h"><span>Plan pierwotny, 2016–2026</span><span class="mono">mld zł · wybierz rok</span></div>
-          <svg id="year-chart" class="year-chart" role="group" tabindex="0" aria-label="Wydatki, dochody i deficyt w latach 2016–2026. Strzałkami zmienisz rok."></svg>
+          <div class="yr-h"><span>Plan pierwotny, 2016–2026</span><span class="mono">najedź na rok</span></div>
+          <svg id="year-chart" class="year-chart" role="group" tabindex="0" aria-label="Wydatki, dochody i deficyt w latach 2016–2026. Najedź albo dotknij rok, żeby zobaczyć kwoty. Strzałkami zmienisz rok."></svg>
+          <div class="year-legend" id="year-legend">
+            <span><i class="swatch" style="background:var(--accent)"></i>Wydatki</span>
+            <span><i class="swatch" style="background:var(--good)"></i>Dochody</span>
+            <span><i class="swatch" style="background:var(--deficit)"></i>Deficyt</span>
+          </div>
+          <div id="year-detail" class="year-detail" aria-live="polite"></div>
         </div>
       </div>
       <section class="card ticker rv" id="ticker" style="--d:2" aria-label="Kluczowe kwoty z uchwały"></section>
@@ -147,6 +153,7 @@
       <div class="card">
         <div class="checks" id="trend-checks"></div>
         <svg id="trend-svg" class="chart" role="img" aria-label="Trendy planu budżetu"></svg>
+        <div id="trend-detail" class="year-detail" aria-live="polite"></div>
       </div>
     </section>
 

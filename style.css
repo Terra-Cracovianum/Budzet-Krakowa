@@ -117,8 +117,16 @@ main { padding-bottom: 48px; }
 .vhead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: end; margin: 8px 0 14px; }
 .vsub { max-width: 62ch; color: var(--ink-2); margin: 0; }
 .year-chart, .chart, .treemap { width: 100%; display: block; }
-.year-chart { height: auto; }
-.treemap.mini { height: 240px; }
+.year-chart { height: auto; user-select: none; }
+.treemap.mini { height: 280px; }
+.year-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; font-size: 13px; }
+.year-detail { margin-top: 12px; display: grid; gap: 3px; }
+.year-detail .yd-h { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.year-detail .yd-h strong { font-family: var(--serif); font-weight: 400; font-size: 28px; }
+.year-detail .yd-sums { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--ink-2); font-size: 13px; margin: 2px 0 6px; }
+.year-detail .line { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.yc-col { cursor: pointer; }
+.yc-col.on { fill: color-mix(in srgb, var(--ink) 8%, transparent); }
 .treemap.tall { height: min(68vh, 560px); }
 .treemap rect { cursor: pointer; transition: x .55s var(--ease), y .55s var(--ease), width .55s var(--ease), height .55s var(--ease); }
 .treemap text { font-family: var(--sans); font-size: 13px; pointer-events: none; }

@@ -151,6 +151,28 @@ function squarify(data, width, height) {
   return out;
 }
 
+function wrapName(name, maxChars, maxLines) {
+  const words = name.split(/\s+/);
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (next.length <= maxChars) {
+      line = next;
+      continue;
+    }
+  if (line) lines.push(line);
+    if (lines.length === maxLines) {
+      const last = lines[maxLines - 1];
+      if (!last.endsWith("…")) lines[maxLines - 1] = `${last.slice(0, Math.max(1, maxChars - 1))}…`;
+      return lines;
+    }
+    line = word.length > maxChars ? `${word.slice(0, Math.max(1, maxChars - 1))}…` : word;
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  return lines;
+}
+
 function valueOf(d) {
   if (state.mapMode === "biezace") return d.biezace || 0;
   if (state.mapMode === "majatkowe") return d.majatkowe || 0;
@@ -199,14 +221,19 @@ function paintTreemap(svgEl, rows, onPick) {
     rect.setAttribute("width", Math.max(0, b.w - 3));
     rect.setAttribute("height", Math.max(0, b.h - 3));
     rect.setAttribute("fill", fill);
-    const chars = Math.max(0, Math.floor((b.w - 24) / 7));
-    const show = chars > 3 && b.h > 36;
-    label.textContent = show ? (b.name.length > chars ? `${b.name.slice(0, chars - 1)}…` : b.name) : "";
-    sub.textContent = show && b.h > 54 ? mln(b.value) : "";
+    const perLine = Math.max(4, Math.floor((b.w - 18) / 6.4));
+    const lines = b.h > 72 ? wrapName(b.name, perLine, 2) : b.h > 32 ? wrapName(b.name, perLine, 1) : [];
+    label.replaceChildren();
+    lines.forEach((line, i) => {
+      const span = svg("tspan", { x: b.x + 10, dy: i === 0 ? 0 : 15 });
+      span.textContent = line;
+      label.append(span);
+    });
     label.setAttribute("x", b.x + 10);
-    label.setAttribute("y", b.y + 22);
+    label.setAttribute("y", b.y + 20);
+    sub.textContent = lines.length && b.h > lines.length * 16 + 28 ? mln(b.value) : "";
     sub.setAttribute("x", b.x + 10);
-    sub.setAttribute("y", b.y + 40);
+    sub.setAttribute("y", b.y + 22 + lines.length * 15);
     const ink = inkFor(fill);
     label.setAttribute("fill", ink);
     sub.setAttribute("fill", ink);
@@ -274,34 +301,81 @@ function closeSheet() {
   setTimeout(() => { $("#sheet").hidden = true; }, reduce ? 0 : 280);
 }
 
+function yearReadout(row) {
+  const box = $("#year-detail");
+  clear(box);
+  const top = [...row.dzialy].sort((a, b) => b.plan - a.plan).slice(0, 6);
+  box.append(el("div", { class: "yd-h" }, [
+    el("strong", { text: String(row.rok) }),
+    el("span", { class: "mono", text: "plan pierwotny" }),
+  ]));
+  box.append(el("div", { class: "yd-sums" }, [
+    el("span", { text: `Wydatki ${mln(row.wydatki)}` }),
+    el("span", { text: `Dochody ${mln(row.dochody)}` }),
+    el("span", { text: `Deficyt ${mln(row.deficyt)}` }),
+  ]));
+  for (const d of top) {
+    box.append(el("div", { class: "line" }, [
+      el("span", { text: d.name }),
+      el("span", { class: "amt", text: mln(d.plan), "data-full": `${row.rok}, ${d.name}: ${full(d.plan)}` }),
+    ]));
+  }
+}
+
 function paintYearChart(trends) {
   const svgEl = $("#year-chart");
-  const w = 560, h = 230, pad = 28;
+  const w = 560, h = 210, pad = 26;
   svgEl.setAttribute("viewBox", `0 0 ${w} ${h}`);
   clear(svgEl);
   const rows = trends.lata;
   const max = Math.max(...rows.map((r) => r.wydatki));
   const x = (i) => pad + (i * (w - pad * 2)) / (rows.length - 1);
-  const y = (v) => h - pad - (v / max) * (h - pad * 1.6);
+  const y = (v) => h - pad - (v / max) * (h - pad * 1.7);
+  const slot = (w - pad * 2) / (rows.length - 1);
   const path = (key) => rows.map((r, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(r[key]).toFixed(1)}`).join(" ");
+  const guide = svg("line", { y1: 8, y2: h - pad, stroke: "var(--ink)", "stroke-opacity": "0.18", "stroke-width": 1 });
+  svgEl.append(guide);
   for (const [key, stroke] of [["dochody", "var(--good)"], ["wydatki", "var(--accent)"], ["deficyt", "var(--deficit)"]]) {
     svgEl.append(svg("path", { d: path(key), fill: "none", stroke, "stroke-width": 2.4 }));
   }
+  const cols = [];
   rows.forEach((r, i) => {
-    const hit = svg("rect", { class: "yc-hit", x: x(i) - 16, y: 8, width: 32, height: h - 16, fill: "transparent" });
-    hit.addEventListener("click", () => setYear(r.rok));
-    svgEl.append(hit);
-    if (i % 2 === 0 || r.rok === state.year) {
-      const t = svg("text", { x: x(i), y: h - 8, "text-anchor": "middle", fill: "var(--ink-2)", "font-size": 11 });
-      t.textContent = r.rok;
-      svgEl.append(t);
-    }
-    const c = svg("circle", {
-      cx: x(i), cy: y(r.wydatki), r: r.rok === state.year ? 5 : 3,
+    const col = svg("rect", { class: "yc-col", x: x(i) - slot / 2, y: 4, width: slot, height: h - 8, fill: "transparent" });
+    col.addEventListener("click", () => setYear(r.rok));
+    svgEl.append(col);
+    cols.push(col);
+    const t = svg("text", { x: x(i), y: h - 8, "text-anchor": "middle", fill: "var(--ink-2)", "font-size": 11 });
+    t.textContent = r.rok;
+    svgEl.append(t);
+    svgEl.append(svg("circle", {
+      cx: x(i), cy: y(r.wydatki), r: r.rok === state.year ? 5 : 3.2,
       fill: r.rok === state.year ? "var(--ink)" : "var(--accent)",
-    });
-    svgEl.append(c);
+    }));
+    svgEl.append(svg("circle", { cx: x(i), cy: y(r.dochody), r: 2.4, fill: "var(--good)" }));
   });
+  const focus = (index) => {
+    const row = rows[index];
+    guide.setAttribute("x1", x(index));
+    guide.setAttribute("x2", x(index));
+    cols.forEach((col, i) => { col.style.fill = i === index ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent"; });
+    svgEl.append(guide);
+    yearReadout(row);
+  };
+  const indexAt = (event) => {
+    const rect = svgEl.getBoundingClientRect();
+    const px = ((event.clientX - rect.left) / rect.width) * w;
+    let best = 0;
+    let dist = Infinity;
+    rows.forEach((r, i) => {
+      const d = Math.abs(x(i) - px);
+      if (d < dist) { dist = d; best = i; }
+    });
+    return best;
+  };
+  svgEl.onpointermove = (event) => focus(indexAt(event));
+  svgEl.onpointerdown = (event) => focus(indexAt(event));
+  svgEl.onpointerleave = () => focus(Math.max(0, rows.findIndex((r) => r.rok === state.year)));
+  focus(Math.max(0, rows.findIndex((r) => r.rok === state.year)));
 }
 
 function paintOverview(trends, exe) {
@@ -340,10 +414,17 @@ function paintOverview(trends, exe) {
     ]));
   }
 
-  const top = [...d.wydatki_dzialy].sort((a, b) => b.plan - a.plan)[0];
-  $("#ov-map-h").textContent = top ? top.name : "";
-  const mapRows = d.wydatki_dzialy.map((row) => ({ ...row, value: row.plan }));
+  const ranked = [...d.wydatki_dzialy].sort((a, b) => b.plan - a.plan);
+  $("#ov-map-h").textContent = ranked[0] ? ranked[0].name : "";
+  const mapRows = [];
+  let restPlan = 0;
+  for (const row of ranked) {
+    if (mapRows.length >= 8 && row.plan / m.wydatki < 0.035) restPlan += row.plan;
+    else mapRows.push({ ...row, value: row.plan });
+  }
+  if (restPlan) mapRows.push({ code: "reszta", name: "Pozostałe działy", plan: restPlan, value: restPlan, rozdzialy: [] });
   requestAnimationFrame(() => paintTreemap($("#ov-treemap"), mapRows, (b) => {
+    if (b.code === "reszta") { show("mapa"); return; }
     const found = d.wydatki_dzialy.find((x) => x.code === b.code);
     show("mapa");
     openSheet(found);
@@ -505,7 +586,7 @@ function paintTrends(trends) {
       paintTrends(trends);
     });
     checks.append(el("label", {}, [input, el("i", { class: "swatch", style: `background:${color}` }), document.createTextNode(label)]));
-    if (on) series.push({ color, rows });
+    if (on) series.push({ color, rows, label });
   };
   add("wydatki", "Wydatki", state.series.wydatki, "#8d2f1b", lata.map((r) => r.wydatki));
   add("dochody", "Dochody", state.series.dochody, "#1d5c40", lata.map((r) => r.dochody));
@@ -540,6 +621,27 @@ function paintTrends(trends) {
     t.textContent = r.rok;
     svgEl.append(t);
   });
+  const detail = $("#trend-detail");
+  const showTrend = (index) => {
+    clear(detail);
+    const row = lata[index];
+    detail.append(el("div", { class: "yd-h" }, [el("strong", { text: String(row.rok) })]));
+    for (const s of series) {
+      detail.append(el("div", { class: "line" }, [
+        el("span", { text: s.label }),
+        el("span", { class: "amt", text: mln(s.rows[index]), "data-full": `${row.rok}, ${s.label}: ${full(s.rows[index])}` }),
+      ]));
+    }
+  };
+  const indexAt = (event) => {
+    const rect = svgEl.getBoundingClientRect();
+    const px = ((event.clientX - rect.left) / rect.width) * w;
+    const slot = (w - padL - padR) / (lata.length - 1);
+    return Math.max(0, Math.min(lata.length - 1, Math.round((px - padL) / slot)));
+  };
+  svgEl.onpointermove = (event) => showTrend(indexAt(event));
+  svgEl.onpointerdown = (event) => showTrend(indexAt(event));
+  showTrend(Math.max(0, lata.findIndex((r) => r.rok === state.year)));
 }
 
 function shares(rows, base) {
