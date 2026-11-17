@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#F4F2ED" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0B0B0C" media="(prefers-color-scheme: dark)">
+  <title>Budżet Krakowa</title>
+  <meta name="description" content="Plan budżetu Miasta Krakowa na lata 2016–2026 według pierwotnych uchwał Rady oraz wykonanie i absolutorium tam, gdzie Rada już je uchwaliła.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Przejdź do treści</a>
+  <header class="hdr" id="hdr">
+    <div class="wrap hdr-in">
+      <a class="brand" href="#przeglad" aria-label="Budżet Krakowa, przegląd">
+        <img src="logo.svg" alt="Terra Cracovianum" width="168" height="56">
+      </a>
+      <nav class="nav" role="tablist" aria-label="Widoki budżetu">
+        <button type="button" class="nav-i on" data-view="przeglad" role="tab" aria-selected="true">Przegląd</button>
+        <button type="button" class="nav-i" data-view="mapa" role="tab" aria-selected="false">Mapa</button>
+        <button type="button" class="nav-i" data-view="przeplyw" role="tab" aria-selected="false">Przepływ</button>
+        <button type="button" class="nav-i" data-view="inwestycje" role="tab" aria-selected="false">Bieżące</button>
+        <button type="button" class="nav-i" data-view="trendy" role="tab" aria-selected="false">Trendy</button>
+        <button type="button" class="nav-i" data-view="tysiac" role="tab" aria-selected="false">Na 1000 zł</button>
+        <button type="button" class="nav-i" data-view="wykonanie" role="tab" aria-selected="false">Wykonanie</button>
+      </nav>
+      <div class="hdr-r">
+        <p class="hdr-amt" id="hdr-amt"></p>
+        <div class="year-controls">
+          <button type="button" id="prev-year" aria-label="Poprzedni rok">‹</button>
+          <label>
+            <span class="sr">Rok budżetowy</span>
+            <select id="year"></select>
+          </label>
+          <button type="button" id="next-year" aria-label="Następny rok">›</button>
+        </div>
+      </div>
+      <button type="button" id="theme" class="ghost" aria-pressed="false">Ciemny</button>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+    <p id="status" class="status" role="status">Wczytuję uchwały…</p>
+    <p id="year-live" class="sr" aria-live="polite"></p>
+
+    <section class="view is-active" id="panel-przeglad" role="tabpanel">
+      <div class="hero">
+        <div class="hero-l rv">
+          <p class="eyebrow" id="hero-eye"></p>
+          <h1 class="hero-n"><span id="hero-amt">—</span><small id="hero-unit">mld zł</small></h1>
+          <p class="hero-t" id="hero-lead"></p>
+          <p class="caption" id="hero-full"></p>
+          <p class="links" id="hero-links"></p>
+          <p class="caption" id="proof"></p>
+        </div>
+        <div class="card yr rv" style="--d:1">
+          <div class="yr-h"><span>Plan pierwotny, 2016–2026</span><span class="mono">najedź na rok</span></div>
+          <svg id="year-chart" class="year-chart" role="group" tabindex="0" aria-label="Wydatki, dochody i deficyt w latach 2016–2026. Najedź albo dotknij rok, żeby zobaczyć kwoty. Strzałkami zmienisz rok."></svg>
+          <div class="year-legend" id="year-legend">
+            <span><i class="swatch" style="background:var(--accent)"></i>Wydatki</span>
+            <span><i class="swatch" style="background:var(--good)"></i>Dochody</span>
+            <span><i class="swatch" style="background:var(--deficit)"></i>Deficyt</span>
+          </div>
+          <div id="year-detail" class="year-detail"></div>
+        </div>
+      </div>
+      <section class="story rv" id="story" style="--d:2" aria-label="Opowieść budżetu">
+        <div class="trio" id="story-trio"></div>
+        <p class="caption story-aside" id="story-aside"></p>
+        <article class="card">
+          <p class="mono">Na co idą pieniądze</p>
+          <h2 class="h">Każdy dział z uchwały, od największego.</h2>
+          <div id="story-spend"></div>
+        </article>
+        <div class="story-split">
+          <article class="card">
+            <p class="mono">Skąd pieniądze</p>
+            <h2 class="h">Grupy dochodów z paragrafu 1.</h2>
+            <div id="story-income" class="src-grid"></div>
+          </article>
+          <article class="card">
+            <p class="mono">Bieżące i majątkowe</p>
+            <h2 class="h" id="story-kind-h">Codzienne działanie i inwestycje.</h2>
+            <div id="story-kind"></div>
+          </article>
+        </div>
+        <article class="card">
+          <p class="mono">Pytania</p>
+          <h2 class="h">Co te liczby znaczą.</h2>
+          <div class="faq">
+            <details>
+              <summary>Czy to plan, czy już wydane pieniądze?</summary>
+              <p>Przegląd pokazuje plan pierwotny, czyli kwoty z pierwszej uchwały budżetowej na dany rok. Wydane pieniądze są w zakładce Wykonanie, i tylko dla lat, w których Komisja Rewizyjna już opiniowała sprawozdanie. Rok w toku nie ma jeszcze wykonania.</p>
+            </details>
+            <details>
+              <summary>Co oznacza deficyt?</summary>
+              <p>Deficyt to różnica, o którą wydatki w uchwale są wyższe od dochodów. Nie jest to dług sam w sobie. Brak domykają pozycje z paragrafu 2, na przykład emisja obligacji albo wolne środki. Nadwyżka też nie jest wolną kwotą do wydania.</p>
+            </details>
+            <details>
+              <summary>Dlaczego nazwy są z klasyfikacji, a nie potoczne?</summary>
+              <p>Zostawiamy urzędowe nazwy działów, żeby każdy wiersz dało się odnaleźć w uchwale. Zdanie obok tylko przybliża zakres i nie obiecuje, że cała kwota ma jeden cel. Działów nie łączymy, więc suma wierszy równa się wydatkom z paragrafu 1.</p>
+            </details>
+            <details>
+              <summary>Dlaczego nie ma kwoty na mieszkańca?</summary>
+              <p>Budżet dzielimy na udziały, nie na osoby. „Z każdych 100 zł” pokazuje proporcję wydatków. To nie jest podatek ani kwota wydana na konkretnego mieszkańca.</p>
+            </details>
+          </div>
+        </article>
+      </section>
+
+      <div class="bento">
+        <article class="card s8 rv" style="--d:3">
+          <div class="k"><span class="mono">Mapa wydatków</span><button type="button" class="open" data-go="mapa">Otwórz</button></div>
+          <h2 class="h" id="ov-map-h"></h2>
+          <svg id="ov-treemap" class="treemap mini" role="img" aria-label="Podgląd mapy wydatków"></svg>
+        </article>
+        <article class="card s4 rv" style="--d:4">
+          <div class="k"><span class="mono">Skąd dochody</span><button type="button" class="open" data-go="przeplyw">Przepływ</button></div>
+          <h2 class="h">Paragraf 1</h2>
+          <div id="ov-src"></div>
+        </article>
+        <article class="card s5 rv" style="--d:5">
+          <div class="k"><span class="mono">Wykonanie i absolutorium</span><button type="button" class="open" data-go="wykonanie">Otwórz</button></div>
+          <div id="ov-exec"></div>
+        </article>
+        <article class="card s7 rv" style="--d:6">
+          <div class="k"><span class="mono">Skąd deficyt</span><button type="button" class="open" data-go="przeplyw">Paragraf 2</button></div>
+          <h2 class="h" id="ov-def-h"></h2>
+          <div id="ov-fin"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" id="panel-mapa" role="tabpanel" hidden>
+      <header class="vhead">
+        <div>
+          <p class="mono">Mapa wydatków</p>
+          <h1 class="vh">Na co idą <em>pieniądze</em>?</h1>
+          <p class="vsub">Każde pole to dział klasyfikacji. Im większe, tym większa kwota w uchwale. Dotknij pole, żeby zobaczyć rozdziały.</p>
+        </div>
+        <div class="seg" id="map-seg" role="group" aria-label="Rodzaj wydatków">
+          <button type="button" data-mode="ogolem" class="on" aria-pressed="true">Ogółem</button>
+          <button type="button" data-mode="biezace" aria-pressed="false">Bieżące</button>
+          <button type="button" data-mode="majatkowe" aria-pressed="false">Majątkowe</button>
+        </div>
+      </header>
+      <div class="card chart-card">
+        <svg id="map-svg" class="treemap tall" role="img" aria-label="Mapa działów wydatków"></svg>
+      </div>
+      <p class="caption" id="map-note"></p>
+    </section>
+
+    <section class="view" id="panel-przeplyw" role="tabpanel" hidden>
+      <header class="vhead">
+        <div>
+          <p class="mono">Przepływ</p>
+          <h1 class="vh">Skąd przychodzą i dokąd <em>płyną</em>?</h1>
+          <p class="vsub">Dochody z uchwały i czerwony deficyt z paragrafu 2 wpadają do budżetu swoją kwotą, a wychodzą z niego działy. To nie jest przypisanie konkretnej złotówki do zadania.</p>
+        </div>
+      </header>
+      <div class="card chart-card">
+        <svg id="sankey" role="img" aria-label="Przepływ dochodów i deficytu do wydatków"></svg>
+        <div id="flow-list" hidden></div>
+      </div>
+      <p class="caption" id="flow-note"></p>
+    </section>
+
+    <section class="view" id="panel-inwestycje" role="tabpanel" hidden>
+      <header class="vhead">
+        <div>
+          <p class="mono">Bieżące i majątkowe</p>
+          <h1 class="vh">Co miasto <em>utrzymuje</em>, a co buduje?</h1>
+          <p class="vsub">Podział z paragrafu 1 pierwotnej uchwały. Lista zadań zostaje w załączniku, dopóki nie da się jej dodać do wydatków majątkowych.</p>
+        </div>
+      </header>
+      <div class="card">
+        <div class="stack" id="inv-stack"></div>
+        <div class="legend" id="inv-legend"></div>
+        <p class="caption" id="inv-full"></p>
+        <p id="inv-link"></p>
+      </div>
+      <div class="card" id="inv-list"></div>
+    </section>
+
+    <section class="view" id="panel-trendy" role="tabpanel" hidden>
+      <header class="vhead">
+        <div>
+          <p class="mono">Trendy</p>
+          <h1 class="vh">Jedenaście uchwał, <em>jedna skala</em>.</h1>
+          <p class="vsub">Złote z roku uchwały, bez przeliczania inflacją. Seria to wyłącznie plany pierwotne.</p>
+        </div>
+      </header>
+      <div class="card">
+        <div class="checks" id="trend-checks"></div>
+        <svg id="trend-svg" class="chart" role="img" aria-label="Trendy planu budżetu"></svg>
+        <div id="trend-detail" class="year-detail" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="view" id="panel-tysiac" role="tabpanel" hidden>
+      <header class="vhead">
+        <div>
+          <p class="mono">Na 1000 zł</p>
+          <h1 class="vh">Z każdych <em>tysiąca</em>.</h1>
+          <p class="vsub">Udział liczy się tylko z uchwały. Jeden kwadrat to 10 zł. Nie ma tu kwoty na mieszkańca.</p>
+        </div>
+        <div class="seg" id="thou-seg" role="group" aria-label="Podstawa tysiąca">
+          <button type="button" data-side="wydatki" class="on" aria-pressed="true">Z wydatków</button>
+          <button type="button" data-side="dochody" aria-pressed="false">Z dochodów</button>
+        </div>
+      </header>
+      <div class="card">
+        <div class="waffle" id="waffle" role="img" aria-label="Sto kwadratów po 10 zł"></div>
+        <div id="thou-list"></div>
+        <p class="caption" id="thou-note"></p>
+      </div>
+    </section>
+
+    <section class="view" id="panel-wykonanie" role="tabpanel" hidden>
+      <header class="vhead">
+        <div>
+          <p class="mono">Wykonanie i absolutorium</p>
+          <h1 class="vh">Ile z planu <em>zostało</em>?</h1>
+          <p class="vsub">Pierścień liczy się wobec planu po zmianach, i tylko wtedy, gdy opinia Komisji Rewizyjnej podaje stopień. Plan pierwotny stoi obok, osobno nazwany.</p>
+        </div>
+      </header>
+      <div id="exec-mount"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <img src="logo.svg" alt="" width="120" height="40">
+      <p>Plan to pierwotna uchwała Rady Miasta Krakowa. Wykonanie to kwoty z opinii Komisji Rewizyjnej dołączonej do uchwały o absolutorium. Grosze z opinii są zaokrąglone do pełnych złotych.</p>
+      <p><a href="sources.md">Rejestr uchwał</a> · <a href="https://www.bip.krakow.pl/?dok_id=167">BIP Rady</a> · <a href="https://bip.krakow.pl/?sub_dok_id=23394">Absolutorium</a> · <a href="https://terra-cracovianum.github.io/Budzet-Polski/">Budżet Polski</a></p>
+    </div>
+  </footer>
+
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+  <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden tabindex="-1">
+    <div class="sheet-grab" aria-hidden="true"></div>
+    <button type="button" class="sheet-close" id="sheet-close" aria-label="Zamknij">×</button>
+    <div id="sheet-body"></div>
+  </aside>
+  <div class="tt" id="tooltip" role="status"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
