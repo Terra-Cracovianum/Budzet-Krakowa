@@ -40,8 +40,8 @@
           </label>
           <button type="button" id="next-year" aria-label="Następny rok">›</button>
         </div>
-        <button type="button" id="theme" class="ghost" aria-pressed="false">Ciemny</button>
       </div>
+      <button type="button" id="theme" class="ghost" aria-pressed="false">Ciemny</button>
     </div>
   </header>
 
@@ -160,11 +160,12 @@
         <div>
           <p class="mono">Przepływ</p>
           <h1 class="vh">Skąd przychodzą i dokąd <em>płyną</em>?</h1>
-          <p class="vsub">Po lewej dochody z uchwały i czerwony deficyt z paragrafu 2. Wpadają do budżetu swoją kwotą, a po prawej wychodzą działy. To nie jest przypisanie konkretnej złotówki do zadania.</p>
+          <p class="vsub">Dochody z uchwały i czerwony deficyt z paragrafu 2 wpadają do budżetu swoją kwotą, a wychodzą z niego działy. To nie jest przypisanie konkretnej złotówki do zadania.</p>
         </div>
       </header>
       <div class="card chart-card">
         <svg id="sankey" role="img" aria-label="Przepływ dochodów i deficytu do wydatków"></svg>
+        <div id="flow-list" hidden></div>
       </div>
       <p class="caption" id="flow-note"></p>
     </section>

@@ -654,12 +654,47 @@ function paintMap() {
   }
 }
 
+function paintFlowList() {
+  const d = doc();
+  const m = d.meta;
+  const list = $("#flow-list");
+  clear(list);
+  const spend = [...d.wydatki_dzialy].sort((a, b) => b.plan - a.plan);
+  const head = spend.slice(0, 6).map((row) => ({ name: row.name, plan: row.plan }));
+  const rest = spend.slice(6).reduce((s, row) => s + row.plan, 0);
+  if (rest) head.push({ name: "Pozostałe działy", plan: rest });
+  list.append(
+    el("h2", { class: "h", text: "Skąd" }),
+    el("p", { class: "plain", text: "Dochody z paragrafu 1 i deficyt, który domykają pozycje z paragrafu 2." }),
+  );
+  const src = el("div");
+  list.append(src);
+  bars(src, [...d.dochody_grupy.filter((g) => g.plan > 0), { name: "Deficyt", plan: m.deficyt }]);
+  list.append(
+    el("h2", { class: "h", text: "Dokąd" }),
+    el("p", { class: "plain", text: "Największe działy wydatków. Pasek pokazuje wielkość w tej liście, nie pochodzenie konkretnej złotówki." }),
+  );
+  const dst = el("div");
+  list.append(dst);
+  bars(dst, head);
+  $("#flow-note").textContent = `Deficyt ${full(m.deficyt)} pokrywają: ${m.finansowanie.map((f) => `${f.name} ${full(f.plan)}`).join(", ")}.`;
+}
+
 function paintFlow() {
   const d = doc();
   const m = d.meta;
   const svgEl = $("#sankey");
-  const width = Math.max(320, svgEl.clientWidth || 900);
-  const height = width < 640 ? 640 : 480;
+  const list = $("#flow-list");
+  const width = svgEl.parentElement?.clientWidth || window.innerWidth;
+  if (width < 720) {
+    svgEl.setAttribute("hidden", "");
+    list.hidden = false;
+    paintFlowList();
+    return;
+  }
+  svgEl.removeAttribute("hidden");
+  list.hidden = true;
+  const height = 480;
   svgEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
   clear(svgEl);
   const spend = [...d.wydatki_dzialy].sort((a, b) => b.plan - a.plan);
@@ -991,6 +1026,7 @@ function show(view) {
     const on = button.dataset.view === view;
     button.classList.toggle("on", on);
     button.setAttribute("aria-selected", String(on));
+    if (on) button.scrollIntoView({ inline: "nearest", block: "nearest" });
   }
   for (const panel of document.querySelectorAll(".view")) {
     const on = panel.id === `panel-${view}`;
