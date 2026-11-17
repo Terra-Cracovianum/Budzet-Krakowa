@@ -306,10 +306,12 @@ function closeSheet() {
 function yearReadout(row) {
   const box = $("#year-detail");
   clear(box);
+  const preview = row.rok !== state.year;
+  box.classList.toggle("is-preview", preview);
   const top = [...row.dzialy].sort((a, b) => b.plan - a.plan).slice(0, 6);
   box.append(el("div", { class: "yd-h" }, [
     el("strong", { text: String(row.rok) }),
-    el("span", { class: "mono", text: "plan pierwotny" }),
+    el("span", { class: "mono", text: preview ? "podgląd · kliknij, żeby wybrać" : "wybrany rok" }),
   ]));
   box.append(el("div", { class: "yd-sums" }, [
     el("span", { text: `Wydatki ${mln(row.wydatki)}` }),
@@ -450,7 +452,7 @@ function spendRow(row, base) {
       ]));
     }
   }
-  return el("article", { class: "spend" }, [
+  return el("article", { class: "spend", "data-code": row.code }, [
     el("div", { class: "spend-top" }, [
       el("p", { class: "spend-pct", text: pct(row.plan, base) }),
       el("div", {}, [
@@ -588,19 +590,7 @@ function paintOverview(trends, exe) {
   );
   $("#hdr-amt").textContent = `${state.year} · ${mln(m.wydatki)}`;
   $("#hdr-amt").dataset.full = full(m.wydatki);
-
-  const ticker = $("#ticker");
-  clear(ticker);
-  for (const [name, value] of [
-    ["Dochody", m.dochody], ["Deficyt", m.deficyt], ["Bieżące", m.wydatki_biezace],
-    ["Majątkowe", m.wydatki_majatkowe], ["Dzielnice", m.dzielnice], ["Przychody", m.przychody],
-  ]) {
-    ticker.append(el("div", { class: "tick", "data-full": full(value) }, [
-      el("span", { text: name }),
-      el("strong", { text: mln(value) }),
-      el("em", { text: full(value) }),
-    ]));
-  }
+  $("#story-aside").textContent = `Dzielnice ${mln(m.dzielnice)} (${full(m.dzielnice)}). Przychody ${mln(m.przychody)} (${full(m.przychody)}).`;
 
   const ranked = [...d.wydatki_dzialy].sort((a, b) => b.plan - a.plan);
   $("#ov-map-h").textContent = ranked[0] ? ranked[0].name : "";
@@ -611,12 +601,7 @@ function paintOverview(trends, exe) {
     else mapRows.push({ ...row, value: row.plan });
   }
   if (restPlan) mapRows.push({ code: "reszta", name: "Pozostałe działy", plan: restPlan, value: restPlan, rozdzialy: [] });
-  requestAnimationFrame(() => paintTreemap($("#ov-treemap"), mapRows, (b) => {
-    if (b.code === "reszta") { show("mapa"); return; }
-    const found = d.wydatki_dzialy.find((x) => x.code === b.code);
-    show("mapa");
-    openSheet(found);
-  }));
+  requestAnimationFrame(() => paintTreemap($("#ov-treemap"), mapRows, (b) => revealDzial(b.code)));
   paintStory(d);
   bars($("#ov-src"), d.dochody_grupy);
   bars($("#ov-fin"), m.finansowanie);
@@ -634,6 +619,22 @@ function paintOverview(trends, exe) {
       el("p", { class: "caption", text: `${exe.absolutorium.nr} · ${exe.absolutorium.data}` }),
     );
   }
+}
+
+function revealDzial(code) {
+  const d = doc();
+  if (code === "reszta") state.storyRest = true;
+  else {
+    state.storyOpen.add(code);
+    const ranked = [...d.wydatki_dzialy].sort((a, b) => b.plan - a.plan);
+    const tucked = ranked.filter((row, i) => i >= 6 && row.plan / d.meta.wydatki < 0.02);
+    if (tucked.some((row) => row.code === code)) state.storyRest = true;
+  }
+  paintStory(d);
+  const target = code === "reszta"
+    ? document.querySelector("#story-spend > .spend:last-child")
+    : document.querySelector(`#story-spend [data-code="${CSS.escape(code)}"]`);
+  target?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
 }
 
 function paintMap() {
@@ -663,7 +664,19 @@ function paintFlowList() {
   const head = spend.slice(0, 6).map((row) => ({ name: row.name, plan: row.plan }));
   const rest = spend.slice(6).reduce((s, row) => s + row.plan, 0);
   if (rest) head.push({ name: "Pozostałe działy", plan: rest });
+  const incoming = [...d.dochody_grupy.filter((g) => g.plan > 0), { name: "Deficyt", plan: m.deficyt }];
+  const incomingSum = incoming.reduce((s, row) => s + row.plan, 0) || 1;
+  const share = el("div", { class: "flow-share", role: "img", "aria-label": "Udział źródeł pieniędzy wchodzących do budżetu" });
+  incoming.forEach((row, i) => {
+    const bit = el("i");
+    bit.style.width = `${(100 * row.plan) / incomingSum}%`;
+    bit.style.background = row.name === "Deficyt" ? "var(--deficit)" : `color-mix(in srgb, var(--good) ${100 - i * 10}%, var(--ink))`;
+    bit.title = `${row.name}: ${full(row.plan)}`;
+    share.append(bit);
+  });
   list.append(
+    share,
+    el("p", { class: "plain", text: "Jeden pasek to pieniądze wchodzące do budżetu: grupy dochodów i deficyt." }),
     el("h2", { class: "h", text: "Skąd" }),
     el("p", { class: "plain", text: "Dochody z paragrafu 1 i deficyt, który domykają pozycje z paragrafu 2." }),
   );
@@ -970,7 +983,7 @@ function paintExec(exe) {
   const maxBar = Math.max(m.wydatki, plan.wydatki || 0, w.wydatki, m.dochody, plan.dochody || 0, w.dochody);
   const trio = (title, values) => {
     const box = el("div", {}, [el("div", { class: "name", text: title })]);
-    const lines = el("div", { class: "trio" });
+    const lines = el("div", { class: "cmp" });
     for (const [label, value, color] of values) {
       if (value == null) continue;
       const i = el("i");
@@ -1016,8 +1029,18 @@ function paintActive() {
   if (state.view === "wykonanie") paintExec(exe);
   const problems = assertYear(doc());
   const status = $("#status");
-  status.textContent = problems.length ? problems.join(" · ") : `Uchwała ${doc().meta.uchwala}, kwoty zgodne z paragrafem 1.`;
-  status.classList.toggle("error", problems.length > 0);
+  const proof = $("#proof");
+  if (problems.length) {
+    status.hidden = false;
+    status.textContent = problems.join(" · ");
+    status.classList.add("error");
+    if (proof) proof.textContent = "";
+  } else {
+    status.hidden = true;
+    status.textContent = "";
+    status.classList.remove("error");
+    if (proof) proof.textContent = `Uchwała ${doc().meta.uchwala}, kwoty zgodne z paragrafem 1.`;
+  }
 }
 
 function show(view) {
@@ -1044,6 +1067,8 @@ function setYear(year) {
   $("#year").value = String(next);
   closeSheet();
   paintActive();
+  const live = $("#year-live");
+  if (live && doc()) live.textContent = `Wybrany rok ${next}. Plan wydatków ${full(doc().meta.wydatki)}.`;
 }
 
 function bindTooltip() {

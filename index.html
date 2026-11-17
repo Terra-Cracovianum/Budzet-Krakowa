@@ -47,6 +47,7 @@
 
   <main id="main" class="wrap">
     <p id="status" class="status" role="status">Wczytuję uchwały…</p>
+    <p id="year-live" class="sr" aria-live="polite"></p>
 
     <section class="view is-active" id="panel-przeglad" role="tabpanel">
       <div class="hero">
@@ -56,6 +57,7 @@
           <p class="hero-t" id="hero-lead"></p>
           <p class="caption" id="hero-full"></p>
           <p class="links" id="hero-links"></p>
+          <p class="caption" id="proof"></p>
         </div>
         <div class="card yr rv" style="--d:1">
           <div class="yr-h"><span>Plan pierwotny, 2016–2026</span><span class="mono">najedź na rok</span></div>
@@ -65,13 +67,12 @@
             <span><i class="swatch" style="background:var(--good)"></i>Dochody</span>
             <span><i class="swatch" style="background:var(--deficit)"></i>Deficyt</span>
           </div>
-          <div id="year-detail" class="year-detail" aria-live="polite"></div>
+          <div id="year-detail" class="year-detail"></div>
         </div>
       </div>
-      <section class="card ticker rv" id="ticker" style="--d:2" aria-label="Kluczowe kwoty z uchwały"></section>
-
-      <section class="story rv" id="story" style="--d:3" aria-label="Opowieść budżetu">
+      <section class="story rv" id="story" style="--d:2" aria-label="Opowieść budżetu">
         <div class="trio" id="story-trio"></div>
+        <p class="caption story-aside" id="story-aside"></p>
         <article class="card">
           <p class="mono">Na co idą pieniądze</p>
           <h2 class="h">Każdy dział z uchwały, od największego.</h2>
