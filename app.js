@@ -573,7 +573,10 @@ function paintTrends(trends) {
     .map((code) => ({ code, plan: lata.reduce((s, y) => s + (y.dzialy.find((d) => d.code === code)?.plan || 0), 0) }))
     .sort((a, b) => b.plan - a.plan)
     .slice(0, 5);
-  if (!state.dzialTrend.size) state.dzialTrend.add(top[0].code);
+  if (!state.trendSeeded) {
+    state.dzialTrend.add(top[0].code);
+    state.trendSeeded = true;
+  }
   const checks = $("#trend-checks");
   clear(checks);
   const series = [];
